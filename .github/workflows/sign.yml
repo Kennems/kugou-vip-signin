@@ -1,0 +1,34 @@
+name: 酷狗概念版 天天签到领VIP
+
+on:
+  schedule:
+    # 09:10 北京时间（UTC+8）= 01:10 UTC
+    - cron: "10 1 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: kugou-vip-signin
+  cancel-in-progress: false
+
+jobs:
+  signin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 执行签到
+        env:
+          KUGOU_TOKEN: ${{ secrets.KUGOU_TOKEN }}
+          KUGOU_USERID: ${{ secrets.KUGOU_USERID }}
+          KUGOU_DFID: ${{ secrets.KUGOU_DFID }}
+          KUGOU_MID: ${{ secrets.KUGOU_MID }}
+        run: node vip.js
+
+      - name: 结果摘要
+        if: always()
+        run: echo "签到任务结束，状态 ${{ job.status }}"

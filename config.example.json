@@ -1,0 +1,11 @@
+{
+  "userid": 0,
+  "token": "填抓到得 token",
+  "dfid": "填抓到的 dfid",
+  "mid": "填抓到的 mid",
+  "appid": 3114,
+  "clientver": 12480,
+  "salt": "ovEFNp9SKfiU4IhZHPxpro0nnp0jLiUb",
+  "source_id": "90137",
+  "base": "https://gateway.kugou.com"
+}
