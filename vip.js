@@ -77,6 +77,14 @@ async function call(method, urlPath, extra = {}, data) {
   }
 }
 
+/** 查本月记录，核实某天是否真的到账（不信接口返回，只信记录） */
+async function verify(day) {
+  const rec = await call("GET", "/youth/v1/activity/get_month_vip_record", { latest_limit: 100 });
+  const row = (rec?.data?.list || []).find((x) => x.day === day);
+  if (!row) return null;
+  return row.receive_vip === 1;
+}
+
 async function main() {
   const checkOnly = process.argv.includes("--check");
   const day = bjDay();
@@ -91,7 +99,8 @@ async function main() {
 
   const taskStatus = st?.data?.task_status;
   if (taskStatus === 3) {
-    log(`${day} 畅听VIP 今日已领取，跳过`);
+    const ok = await verify(day);
+    log(`${day} 畅听VIP 今日已领取，跳过` + (ok === true ? "（记录已核实）" : ""));
     process.exit(0);
   }
   if (checkOnly) {
@@ -107,11 +116,14 @@ async function main() {
   );
 
   if (r?.error_code === 0) {
-    log(`✅ ${day} 签到成功：畅听VIP +1 天`);
+    const ok = await verify(day);
+    const tail = ok === true ? "（记录已核实）" : ok === false ? "（⚠️ 记录未确认，需复查）" : "";
+    log(`✅ ${day} 签到成功：畅听VIP +1 天${tail}`);
     process.exit(0);
   }
   if (r?.error_code === 131001) {
-    log(`${day} 返回 131001：今日已领取，或需先在 App 内有听歌记录`);
+    const ok = await verify(day);
+    log(`${day} 返回 131001：` + (ok === true ? "今日已领取（记录已核实）" : "需先在 App 内有听歌记录"));
     process.exit(0);
   }
   if (r?.error_code === 304003) {
