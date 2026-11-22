@@ -2,8 +2,8 @@ name: 酷狗概念版 每日签到（畅听VIP + 金币）
 
 on:
   schedule:
-    # 17:00 北京时间（UTC+8）= 09:00 UTC
-    - cron: "0 9 * * *"
+    # 05:00 北京时间（UTC+8）= 前一天 21:00 UTC
+    - cron: "0 21 * * *"
   workflow_dispatch:
 
 concurrency:
