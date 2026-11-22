@@ -1,13 +1,13 @@
-name: 酷狗概念版 天天签到领VIP
+name: 酷狗概念版 每日签到（畅听VIP + 金币）
 
 on:
   schedule:
-    # 09:10 北京时间（UTC+8）= 01:10 UTC
-    - cron: "10 1 * * *"
+    # 17:00 北京时间（UTC+8）= 09:00 UTC
+    - cron: "0 9 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: kugou-vip-signin
+  group: kugou-signin
   cancel-in-progress: false
 
 jobs:
@@ -21,13 +21,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: 执行签到
+      - name: 领取畅听VIP
         env:
           KUGOU_TOKEN: ${{ secrets.KUGOU_TOKEN }}
           KUGOU_USERID: ${{ secrets.KUGOU_USERID }}
           KUGOU_DFID: ${{ secrets.KUGOU_DFID }}
           KUGOU_MID: ${{ secrets.KUGOU_MID }}
         run: node vip.js
+
+      # 前一步失败也照跑，两个任务互不牵连（脚本都幂等，重复执行不会重复领）
+      - name: 领取金币
+        if: always()
+        env:
+          KUGOU_TOKEN: ${{ secrets.KUGOU_TOKEN }}
+          KUGOU_USERID: ${{ secrets.KUGOU_USERID }}
+          KUGOU_DFID: ${{ secrets.KUGOU_DFID }}
+          KUGOU_MID: ${{ secrets.KUGOU_MID }}
+        run: node sign.js
 
       - name: 结果摘要
         if: always()

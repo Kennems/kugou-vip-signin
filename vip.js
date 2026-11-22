@@ -34,6 +34,15 @@ function loadConfig() {
 
 const CFG = loadConfig();
 const SOURCE_ID = CFG.source_id || "90137";
+
+/**
+ * 畅听VIP 接口挂在裸域名下：实测 2026-11，
+ *   /youth/v1/activity/get_listen_song_task        -> 200
+ *   /yutc/youth/v1/activity/get_listen_song_task   -> 404（openresty）
+ * 所以这里写死裸域名，不跟随 config.json 的 base（金币脚本用的是 /yutc 前缀）。
+ */
+const API_BASE = "https://gateway.kugou.com";
+
 const md5 = (s) => crypto.createHash("md5").update(s, "utf8").digest("hex");
 const bjDay = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 
@@ -64,7 +73,7 @@ async function call(method, urlPath, extra = {}, data) {
   const qs = Object.keys(p)
     .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(p[k])}`)
     .join("&");
-  const res = await fetch(`${CFG.base}${urlPath}?${qs}`, {
+  const res = await fetch(`${API_BASE}${urlPath}?${qs}`, {
     method,
     headers: body ? { "Content-Type": "application/json" } : {},
     body: body || undefined,
@@ -92,6 +101,7 @@ async function main() {
   const st = await call("GET", "/youth/v1/activity/get_listen_song_task", { source_id: SOURCE_ID });
   if (st?.error_code !== 0) {
     log(`查询状态失败: ${JSON.stringify(st).slice(0, 200)}`);
+    if (st?._raw && /<html/i.test(st._raw)) log(`网关返回 HTML（通常是路径前缀不对），当前 base=${API_BASE}`);
     if (st?.error_code === 20006) log("签名盐可能已变更，需重新抓包");
     if (st?.error_code === 20018 || st?.error_code === 51002) log("token 过期，需重新登录抓包");
     process.exit(2);

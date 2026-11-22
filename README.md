@@ -1,6 +1,10 @@
-# 酷狗概念版 · 天天签到领畅听VIP（自动）
+# 酷狗概念版 · 每日签到（畅听VIP + 金币，自动）
 
-每天自动领 1 天畅听 VIP。GitHub Actions 定时跑，不需要电脑开机。
+每天自动领 1 天畅听 VIP，并领取每日签到金币（150 起，连签递增）。GitHub Actions 定时跑，不需要电脑开机。
+
+- **定时**：每天 **17:00 北京时间**（09:00 UTC）
+- **两个脚本**：`vip.js` 领畅听 VIP，`sign.js` 领金币，均幂等，重复执行不会重复领
+- 互不牵连：VIP 那步失败，金币那步照样执行（`if: always()`）
 
 ## 一次性配置
 
@@ -27,24 +31,32 @@
 
 ## 手动触发
 
-**Actions → 酷狗概念版 天天签到领VIP → Run workflow**。日志会打印今天签没签。
+**Actions → 酷狗概念版 每日签到（畅听VIP + 金币）→ Run workflow**。日志会分别打印今天 VIP 和金币的领取情况。
 
 ## 接口备忘
 
 ```
+【畅听VIP】走裸域名（带 /yutc 会 404）
 状态 GET  https://gateway.kugou.com/youth/v1/activity/get_listen_song_task?source_id=90137
 领取 POST https://gateway.kugou.com/youth/v1/recharge/receive_vip_listen_song
           ?receive_day=YYYY-MM-DD&source_id=90137   body: {}
+
+【金币】走 /yutc 前缀（不带会 400）
+状态 GET  https://gateway.kugou.com/yutc/youth/v1/task/sign_state
+领取 POST https://gateway.kugou.com/yutc/youth/v1/task/signon   body: {"code":"YYYYMMDD"}
 ```
 
+> ⚠️ 两套接口的网关前缀相反，所以脚本里各自写死了 base（`vip.js` = 裸域名，`sign.js` = 带 `/yutc`），
+> **不要**再共用 `config.json` 的 `base` 字段，否则必有一边挂掉。
+
 - 签名：`md5(salt + 按 key 排序的 k=v 拼接 + body + salt)`，iOS 盐 `ovEFNp9SKfiU4IhZHPxpro0nnp0jLiUb`
-- `task_status=3` 已领取；重复领取返回 `131001`
-- `304003` 日期不能小于今天；`20006` 签名盐失效
+- VIP：`task_status=3` 已领取；重复领取返回 `131001`；`304003` 日期不能小于今天；`20006` 签名盐失效
+- 金币：`state=1` 已签到；重复签到返回 `30014`
 
 ## 常见问题
 
 - **token 过期**（约 2 个月）：重新抓包换 `KUGOU_TOKEN`
-- **定时不准**：GitHub 的 cron 高峰会延迟几分钟到十几分钟，属正常
+- **定时不准**：GitHub 的 cron 用 UTC，且高峰（尤其整点）会延迟几分钟到几十分钟，属正常；错过当天不会补跑
 - **60 天后不再运行**：`keepalive.yml` 每月空提交一次，防止被停用
 - 如果某天日志是 `131001` 但你确认没领过，说明接口要求先有听歌记录，需要再补一步播放上报
 
